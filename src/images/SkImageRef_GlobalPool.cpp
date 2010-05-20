@@ -80,4 +80,3 @@ void SkImageRef_GlobalPool::DumpPool() {
     SkAutoMutexAcquire ac(gImageRefMutex);
     gGlobalImageRefPool.dump();
 }
-

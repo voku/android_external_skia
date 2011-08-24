@@ -285,6 +285,9 @@ endif
 
 LOCAL_LDLIBS += -lpthread
 
+# more output
+# LOCAL_CFLAGS += -DDEBUG_LOG
+
 LOCAL_MODULE:= libskia
 
 include $(BUILD_SHARED_LIBRARY)

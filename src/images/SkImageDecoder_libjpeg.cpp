@@ -44,6 +44,12 @@ static int usingHW=0;
 
 #endif
 
+#ifdef DEBUG_LOG
+# define PRINTF SkDebugf
+#else
+# define PRINTF
+#endif
+
 // this enables timing code to report milliseconds for an encode
 //#define TIME_ENCODE
 //#define TIME_DECODE
@@ -982,18 +988,19 @@ static SkImageDecoder* DFactory(SkStream* stream) {
             SkDebugf("Threshold crossed. Attempting to load HW decoder...\n");
             mLibHandle = ::dlopen(HW_JPEGDEC_CODEC_LIBRARY, RTLD_NOW);
             if( mLibHandle == NULL ) {
-                SkDebugf ("Failed to load %s because %s", HW_JPEGENC_CODEC_LIBRARY, dlerror());
+                SkDebugf ("Failed to load %s because %s", HW_JPEGDEC_CODEC_LIBRARY, dlerror());
+                usingHW=0;
             }
             else SkDebugf ("Loaded %s", HW_JPEGDEC_CODEC_LIBRARY);
         }
         else
         {
-            SkDebugf("Loading ARM decoder...\n");
+            PRINTF ("Loading ARM decoder...\n");
             usingHW=0;
             mLibHandle = NULL;
         }
-     } else {
-        SkDebugf("Loading ARM decoder...\n");
+    } else {
+        PRINTF ("Using ARM decoder...\n");
         usingHW=0;
         mLibHandle = NULL;
     }
@@ -1002,7 +1009,7 @@ static SkImageDecoder* DFactory(SkStream* stream) {
         typedef SkImageDecoder* (*HWJpegDecFactory)();
         HWJpegDecFactory f = (HWJpegDecFactory) ::dlsym(mLibHandle, "SkImageDecoder_HWJPEG_Factory");
         if (f != NULL) {
-            SkDebugf("\n\n####### Loaded Hardware Specific Jpeg Decoder Codec #######\n\n");
+            SkDebugf("####### Loaded Hardware Specific Jpeg Decoder Codec #######\n");
             usingHW=1;
             return f();
         }
@@ -1036,7 +1043,7 @@ static SkImageEncoder* EFactory(SkImageEncoder::Type t) {
     }
     else
     {
-        SkDebugf("Loading ARM encoder...\n");
+        PRINTF ("Using ARM encoder...\n");
         mLibHandle = NULL;
     }
 
@@ -1044,7 +1051,7 @@ static SkImageEncoder* EFactory(SkImageEncoder::Type t) {
         typedef SkImageEncoder* (*HWJpegEncFactory)();
         HWJpegEncFactory f = (HWJpegEncFactory) ::dlsym(mLibHandle, "SkImageEncoder_HWJPEG_Factory");
         if (f != NULL) {
-            SkDebugf("\n\n####### Loaded Hardware Specific Jpeg Encoder Codec #######\n\n");
+            SkDebugf("####### Loaded Hardware Specific Jpeg Encoder Codec #######\n");
             return f();
         }
         SkDebugf("Unable to Load Hardware Specific Jpeg Encoder Codec because: %s", dlerror());

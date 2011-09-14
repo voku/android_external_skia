@@ -68,6 +68,7 @@ private:
     SkMSec      fMinToDump;
 };
 
+#ifdef OMAP_ENHANCEMENT
 class AutoTimeMicros {
 public:
     AutoTimeMicros(const char label[]) : fLabel(label) {
@@ -120,5 +121,6 @@ private:
 };
 
  ///////////////////////////////////////////////////////////////////////////////
+#endif
 #endif
 

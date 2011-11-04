@@ -30,6 +30,7 @@
 #else
     // if we don't have neon, then our black blitter is worth the extra code
     #define USE_BLACK_BLITTER
+    #define UNROLL_BLACK_BLITTER
 #endif
 
 void sk_dither_memset16(uint16_t dst[], uint16_t value, uint16_t other,
@@ -563,11 +564,23 @@ static uint32_t pmcolor_to_expand16(SkPMColor c) {
 
 static inline void blend32_16_row(SkPMColor src, uint16_t dst[], int count) {
     SkASSERT(count > 0);
+
     uint32_t src_expand = pmcolor_to_expand16(src);
+    uint16_t old_origin_dst = 0xFFFF;
+    uint16_t last_dst = 0xFFFF;
+    uint16_t c = 0xFFFF;
+
     unsigned scale = SkAlpha255To256(0xFF - SkGetPackedA32(src)) >> 3;
     do {
-        uint32_t dst_expand = SkExpand_rgb_16(*dst) * scale;
-        *dst = SkCompact_rgb_16((src_expand + dst_expand) >> 5);
+
+        c = *dst;
+        if(old_origin_dst != c)
+        {
+            uint32_t dst_expand = SkExpand_rgb_16(c) * scale;
+            last_dst = SkCompact_rgb_16((src_expand + dst_expand) >> 5);
+            old_origin_dst = c;
+        }
+        *dst = last_dst;
         dst += 1;
     } while (--count != 0);
 }
@@ -677,16 +690,37 @@ void SkRGB16_Blitter::blitV(int x, int y, int height, SkAlpha alpha) {
     } while (--height != 0);
 }
 
+#define unlikely(x)     __builtin_expect((x),0)
+
 void SkRGB16_Blitter::blitRect(int x, int y, int width, int height) {
     SkASSERT(x + width <= fDevice.width() && y + height <= fDevice.height());
     uint16_t* SK_RESTRICT device = fDevice.getAddr16(x, y);
     unsigned    deviceRB = fDevice.rowBytes();
     SkPMColor src32 = fSrcColor32;
 
+#ifdef UNROLL_BLACK_BLITTER
+    if (unlikely(height == 0))
+        return;
+
+    if (height & 1) {
+        blend32_16_row(src32, device, width);
+        device = (uint16_t*)((char*)device + deviceRB);
+        height -= 1;
+    }
+
+    uint16_t* SK_RESTRICT deviceEnd = (uint16_t*)((char*) device + height * deviceRB);
+    while (device != deviceEnd) {
+        blend32_16_row(src32, device, width);
+        device = (uint16_t*)((char*)device + deviceRB);
+        blend32_16_row(src32, device, width);
+        device = (uint16_t*)((char*)device + deviceRB);
+    }
+#else
     while (--height >= 0) {
         blend32_16_row(src32, device, width);
         device = (uint16_t*)((char*)device + deviceRB);
     }
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

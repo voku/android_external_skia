@@ -224,12 +224,8 @@ static inline SkPMColor SkPackARGB32(U8CPU a, U8CPU r, U8CPU g, U8CPU b) {
 extern const uint32_t gMask_00FF00FF;
 
 static inline uint32_t SkAlphaMulQ(uint32_t c, unsigned scale) {
-    uint32_t mask = gMask_00FF00FF;
-//    uint32_t mask = 0xFF00FF;
-
-    uint32_t rb = ((c & mask) * scale) >> 8;
-    uint32_t ag = ((c >> 8) & mask) * scale;
-    return (rb & mask) | (ag & ~mask);
+    const uint32_t mask = 0xFF00FF; // gMask_00FF00FF
+    return ((uint32_t)( ((c & mask) * scale) >> 8 ) & mask) | ((uint32_t)( ((c >> 8) & mask) * scale ) & ~mask);
 }
 
 static inline SkPMColor SkPMSrcOver(SkPMColor src, SkPMColor dst) {

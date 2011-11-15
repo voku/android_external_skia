@@ -135,7 +135,7 @@ bool SkBitmapProcShader::setContext(const SkBitmap& device,
     return true;
 }
 
-#define BUF_MAX     1024
+#define BUF_MAX    128
 
 void SkBitmapProcShader::shadeSpan(int x, int y, SkPMColor dstC[], int count) {
     const SkBitmapProcState& state = fState;

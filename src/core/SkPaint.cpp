@@ -63,6 +63,7 @@ SkPaint::SkPaint() {
     fStyle      = kFill_Style;
     fTextEncoding = kUTF8_TextEncoding;
     fHinting    = kNormal_Hinting;
+    fGenerationID = 0;
 }
 
 SkPaint::SkPaint(const SkPaint& src)
@@ -113,7 +114,9 @@ SkPaint& SkPaint::operator=(const SkPaint& src)
     fRasterizer->safeUnref();
     fLooper->safeUnref();
 
+    uint32_t oldGenerationID = fGenerationID;
     memcpy(this, &src, sizeof(src));
+    fGenerationID = oldGenerationID + 1;
 
     return *this;
 }
@@ -127,73 +130,119 @@ void SkPaint::reset()
 {
     SkPaint init;
 
+    uint32_t oldGenerationID = fGenerationID;
     *this = init;
+    fGenerationID = oldGenerationID + 1;
+}
+
+uint32_t SkPaint::getGenerationID() const {
+    return fGenerationID;
 }
 
 void SkPaint::setFlags(uint32_t flags)
 {
-    fFlags = flags;
+    if (fFlags != flags) {
+        fFlags = flags;
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setAntiAlias(bool doAA)
 {
-    this->setFlags(SkSetClearMask(fFlags, doAA, kAntiAlias_Flag));
+    if (doAA != isAntiAlias()) {
+        this->setFlags(SkSetClearMask(fFlags, doAA, kAntiAlias_Flag));
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setDither(bool doDither)
 {
-    this->setFlags(SkSetClearMask(fFlags, doDither, kDither_Flag));
+    if (doDither != isDither()) {
+        this->setFlags(SkSetClearMask(fFlags, doDither, kDither_Flag));
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setSubpixelText(bool doSubpixel)
 {
-    this->setFlags(SkSetClearMask(fFlags, doSubpixel, kSubpixelText_Flag));
+    if (doSubpixel != isSubpixelText()) {
+        this->setFlags(SkSetClearMask(fFlags, doSubpixel, kSubpixelText_Flag));
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setLCDRenderText(bool doLCDRender)
 {
-    this->setFlags(SkSetClearMask(fFlags, doLCDRender, kLCDRenderText_Flag));
+    if (doLCDRender != isLCDRenderText()) {
+        this->setFlags(SkSetClearMask(fFlags, doLCDRender, kLCDRenderText_Flag));
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setEmbeddedBitmapText(bool doEmbeddedBitmapText)
 {
-    this->setFlags(SkSetClearMask(fFlags, doEmbeddedBitmapText, kEmbeddedBitmapText_Flag));
+    if (doEmbeddedBitmapText != isEmbeddedBitmapText()) {
+        this->setFlags(SkSetClearMask(fFlags, doEmbeddedBitmapText, kEmbeddedBitmapText_Flag));
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setLinearText(bool doLinearText)
 {
-    this->setFlags(SkSetClearMask(fFlags, doLinearText, kLinearText_Flag));
+    if (doLinearText != isLinearText()) {
+        this->setFlags(SkSetClearMask(fFlags, doLinearText, kLinearText_Flag));
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setUnderlineText(bool doUnderline)
 {
-    this->setFlags(SkSetClearMask(fFlags, doUnderline, kUnderlineText_Flag));
+    if (doUnderline != isUnderlineText()) {
+        this->setFlags(SkSetClearMask(fFlags, doUnderline, kUnderlineText_Flag));
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setStrikeThruText(bool doStrikeThru)
 {
-    this->setFlags(SkSetClearMask(fFlags, doStrikeThru, kStrikeThruText_Flag));
+    if (doStrikeThru != isStrikeThruText()) {
+        this->setFlags(SkSetClearMask(fFlags, doStrikeThru, kStrikeThruText_Flag));
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setFakeBoldText(bool doFakeBold)
 {
-    this->setFlags(SkSetClearMask(fFlags, doFakeBold, kFakeBoldText_Flag));
+    if (doFakeBold != isFakeBoldText()) {
+        this->setFlags(SkSetClearMask(fFlags, doFakeBold, kFakeBoldText_Flag));
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setDevKernText(bool doDevKern)
 {
-    this->setFlags(SkSetClearMask(fFlags, doDevKern, kDevKernText_Flag));
+    if (doDevKern != isDevKernText()) {
+        this->setFlags(SkSetClearMask(fFlags, doDevKern, kDevKernText_Flag));
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setFilterBitmap(bool doFilter)
 {
-    this->setFlags(SkSetClearMask(fFlags, doFilter, kFilterBitmap_Flag));
+    if (doFilter != isFilterBitmap()) {
+        this->setFlags(SkSetClearMask(fFlags, doFilter, kFilterBitmap_Flag));
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setStyle(Style style)
 {
-    if ((unsigned)style < kStyleCount)
-        fStyle = style;
+    if ((unsigned)style < kStyleCount) {
+        if ((unsigned)style != fStyle) {
+            fStyle = style;
+            fGenerationID++;
+        }
+    }
 #ifdef SK_DEBUG
     else
         SkDebugf("SkPaint::setStyle(%d) out of range\n", style);
@@ -202,23 +251,38 @@ void SkPaint::setStyle(Style style)
 
 void SkPaint::setColor(SkColor color)
 {
-    fColor = color;
+    if (color != fColor) {
+        fColor = color;
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setAlpha(U8CPU a)
 {
-    fColor = SkColorSetARGB(a, SkColorGetR(fColor), SkColorGetG(fColor), SkColorGetB(fColor));
+    U8CPU oldA = SkColorGetA(fColor);
+    if (a != oldA) {
+        fColor = SkColorSetARGB(a, SkColorGetR(fColor), SkColorGetG(fColor), SkColorGetB(fColor));
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setARGB(U8CPU a, U8CPU r, U8CPU g, U8CPU b)
 {
+    SkColor oldColor = fColor;
     fColor = SkColorSetARGB(a, r, g, b);
+    if (oldColor != fColor) {
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setStrokeWidth(SkScalar width)
 {
-    if (width >= 0)
-        fWidth = width;
+    if (width >= 0) {
+        if (width != fWidth) {
+            fWidth = width;
+            fGenerationID++;
+        }
+    }
 #ifdef SK_DEBUG
     else
         SkDebugf("SkPaint::setStrokeWidth() called with negative value\n");
@@ -227,8 +291,12 @@ void SkPaint::setStrokeWidth(SkScalar width)
 
 void SkPaint::setStrokeMiter(SkScalar limit)
 {
-    if (limit >= 0)
-        fMiterLimit = limit;
+    if (limit >= 0) {
+        if (limit != fMiterLimit) {
+            fMiterLimit = limit;
+            fGenerationID++;
+        }
+    }
 #ifdef SK_DEBUG
     else
         SkDebugf("SkPaint::setStrokeMiter() called with negative value\n");
@@ -237,8 +305,12 @@ void SkPaint::setStrokeMiter(SkScalar limit)
 
 void SkPaint::setStrokeCap(Cap ct)
 {
-    if ((unsigned)ct < kCapCount)
-        fCapType = SkToU8(ct);
+    if ((unsigned)ct < kCapCount) {
+        if ((unsigned)ct != fCapType) {
+            fCapType = SkToU8(ct);
+            fGenerationID++;
+        }
+    }
 #ifdef SK_DEBUG
     else
         SkDebugf("SkPaint::setStrokeCap(%d) out of range\n", ct);
@@ -247,8 +319,12 @@ void SkPaint::setStrokeCap(Cap ct)
 
 void SkPaint::setStrokeJoin(Join jt)
 {
-    if ((unsigned)jt < kJoinCount)
-        fJoinType = SkToU8(jt);
+    if ((unsigned)jt < kJoinCount) {
+        if ((unsigned)jt != fJoinType) {
+            fJoinType = SkToU8(jt);
+            fGenerationID++;
+        }
+    }
 #ifdef SK_DEBUG
     else
         SkDebugf("SkPaint::setStrokeJoin(%d) out of range\n", jt);
@@ -259,8 +335,12 @@ void SkPaint::setStrokeJoin(Join jt)
 
 void SkPaint::setTextAlign(Align align)
 {
-    if ((unsigned)align < kAlignCount)
-        fTextAlign = SkToU8(align);
+    if ((unsigned)align < kAlignCount) {
+        if ((unsigned)align != fTextAlign) {
+            fTextAlign = SkToU8(align);
+            fGenerationID++;
+        }
+    }
 #ifdef SK_DEBUG
     else
         SkDebugf("SkPaint::setTextAlign(%d) out of range\n", align);
@@ -269,8 +349,12 @@ void SkPaint::setTextAlign(Align align)
 
 void SkPaint::setTextSize(SkScalar ts)
 {
-    if (ts > 0)
-        fTextSize = ts;
+    if (ts > 0) {
+        if (ts != fTextSize) {
+            fTextSize = ts;
+            fGenerationID++;
+        }
+    }
 #ifdef SK_DEBUG
     else
         SkDebugf("SkPaint::setTextSize() called with non-positive value\n");
@@ -279,18 +363,28 @@ void SkPaint::setTextSize(SkScalar ts)
 
 void SkPaint::setTextScaleX(SkScalar scaleX)
 {
-    fTextScaleX = scaleX;
+    if (scaleX != fTextScaleX) {
+        fTextScaleX = scaleX;
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setTextSkewX(SkScalar skewX)
 {
-    fTextSkewX = skewX;
+    if (skewX != fTextSkewX) {
+        fTextSkewX = skewX;
+        fGenerationID++;
+    }
 }
 
 void SkPaint::setTextEncoding(TextEncoding encoding)
 {
-    if ((unsigned)encoding <= kGlyphID_TextEncoding)
-        fTextEncoding = encoding;
+    if ((unsigned)encoding <= kGlyphID_TextEncoding) {
+        if ((unsigned)encoding != fTextEncoding) {
+            fTextEncoding = encoding;
+            fGenerationID++;
+        }
+    }
 #ifdef SK_DEBUG
     else
         SkDebugf("SkPaint::setTextEncoding(%d) out of range\n", encoding);
@@ -302,18 +396,21 @@ void SkPaint::setTextEncoding(TextEncoding encoding)
 SkTypeface* SkPaint::setTypeface(SkTypeface* font)
 {
     SkRefCnt_SafeAssign(fTypeface, font);
+    fGenerationID++;
     return font;
 }
 
 SkRasterizer* SkPaint::setRasterizer(SkRasterizer* r)
 {
     SkRefCnt_SafeAssign(fRasterizer, r);
+    fGenerationID++;
     return r;
 }
 
 SkDrawLooper* SkPaint::setLooper(SkDrawLooper* looper)
 {
     SkRefCnt_SafeAssign(fLooper, looper);
+    fGenerationID++;
     return looper;
 }
 
@@ -321,6 +418,32 @@ SkDrawLooper* SkPaint::setLooper(SkDrawLooper* looper)
 
 #include "SkGlyphCache.h"
 #include "SkUtils.h"
+
+static void DetachDescProc(const SkDescriptor* desc, void* context)
+{
+    *((SkGlyphCache**)context) = SkGlyphCache::DetachCache(desc);
+}
+
+const SkGlyph& SkPaint::getUnicharMetrics(SkUnichar text) {
+    SkGlyphCache* cache;
+    descriptorProc(NULL, DetachDescProc, &cache, true);
+
+    const SkGlyph& glyph = cache->getUnicharMetrics(text);
+
+    SkGlyphCache::AttachCache(cache);
+    return glyph;
+}
+
+const void* SkPaint::findImage(const SkGlyph& glyph) {
+    // See ::detachCache()
+    SkGlyphCache* cache;
+    descriptorProc(NULL, DetachDescProc, &cache, true);
+
+    const void* image = cache->findImage(glyph);
+
+    SkGlyphCache::AttachCache(cache);
+    return image;
+}
 
 int SkPaint::textToGlyphs(const void* textData, size_t byteLength,
                           uint16_t glyphs[]) const {
@@ -1330,11 +1453,15 @@ void SkScalerContext::MakeRec(const SkPaint& paint,
 
 void SkPaint::descriptorProc(const SkMatrix* deviceMatrix,
                              void (*proc)(const SkDescriptor*, void*),
-                             void* context) const
+                             void* context, bool ignoreGamma) const
 {
     SkScalerContext::Rec    rec;
 
     SkScalerContext::MakeRec(*this, deviceMatrix, &rec);
+    if (ignoreGamma) {
+        rec.fFlags &= ~(SkScalerContext::kGammaForBlack_Flag |
+                SkScalerContext::kGammaForWhite_Flag);
+    }
 
     size_t          descSize = sizeof(rec);
     int             entryCount = 1;
@@ -1387,11 +1514,6 @@ void SkPaint::descriptorProc(const SkMatrix* deviceMatrix,
     desc->computeChecksum();
 
     proc(desc, context);
-}
-
-static void DetachDescProc(const SkDescriptor* desc, void* context)
-{
-    *((SkGlyphCache**)context) = SkGlyphCache::DetachCache(desc);
 }
 
 SkGlyphCache* SkPaint::detachCache(const SkMatrix* deviceMatrix) const
@@ -1548,18 +1670,27 @@ void SkPaint::unflatten(SkFlattenableReadBuffer& buffer) {
 
 SkShader* SkPaint::setShader(SkShader* shader)
 {
+    if (shader != fShader) {
+        fGenerationID++;
+    }
     SkRefCnt_SafeAssign(fShader, shader);
     return shader;
 }
 
 SkColorFilter* SkPaint::setColorFilter(SkColorFilter* filter)
 {
+    if (filter != fColorFilter) {
+        fGenerationID++;
+    }
     SkRefCnt_SafeAssign(fColorFilter, filter);
     return filter;
 }
 
 SkXfermode* SkPaint::setXfermode(SkXfermode* mode)
 {
+    if (mode != fXfermode) {
+        fGenerationID++;
+    }
     SkRefCnt_SafeAssign(fXfermode, mode);
     return mode;
 }
@@ -1567,17 +1698,24 @@ SkXfermode* SkPaint::setXfermode(SkXfermode* mode)
 SkXfermode* SkPaint::setXfermodeMode(SkXfermode::Mode mode) {
     SkSafeUnref(fXfermode);
     fXfermode = SkXfermode::Create(mode);
+    fGenerationID++;
     return fXfermode;
 }
 
 SkPathEffect* SkPaint::setPathEffect(SkPathEffect* effect)
 {
+    if (effect != fPathEffect) {
+        fGenerationID++;
+    }
     SkRefCnt_SafeAssign(fPathEffect, effect);
     return effect;
 }
 
 SkMaskFilter* SkPaint::setMaskFilter(SkMaskFilter* filter)
 {
+    if (filter != fMaskFilter) {
+        fGenerationID++;
+    }
     SkRefCnt_SafeAssign(fMaskFilter, filter);
     return filter;
 }

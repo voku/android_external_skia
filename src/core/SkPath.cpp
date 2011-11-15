@@ -97,11 +97,14 @@ static void compute_pt_bounds(SkRect* bounds, const SkTDArray<SkPoint>& pts) {
 
 SkPath::SkPath() : fBoundsIsDirty(true), fFillType(kWinding_FillType) {
     fIsConvex = false;
+    fGenerationID = 0;
 }
 
 SkPath::SkPath(const SkPath& src) {
     SkDEBUGCODE(src.validate();)
+    uint32_t currentGenID = fGenerationID;
     *this = src;
+    fGenerationID = currentGenID;
 }
 
 SkPath::~SkPath() {
@@ -118,6 +121,7 @@ SkPath& SkPath::operator=(const SkPath& src) {
         fFillType       = src.fFillType;
         fBoundsIsDirty  = src.fBoundsIsDirty;
         fIsConvex       = src.fIsConvex;
+        fGenerationID++;
     }
     SkDEBUGCODE(this->validate();)
     return *this;
@@ -140,7 +144,12 @@ void SkPath::swap(SkPath& other) {
         SkTSwap<uint8_t>(fFillType, other.fFillType);
         SkTSwap<uint8_t>(fBoundsIsDirty, other.fBoundsIsDirty);
         SkTSwap<uint8_t>(fIsConvex, other.fIsConvex);
+        fGenerationID++;
     }
+}
+
+uint32_t SkPath::getGenerationID() const {
+    return fGenerationID;
 }
 
 void SkPath::reset() {
@@ -148,6 +157,7 @@ void SkPath::reset() {
 
     fPts.reset();
     fVerbs.reset();
+    fGenerationID++;
     fBoundsIsDirty = true;
 }
 
@@ -156,6 +166,7 @@ void SkPath::rewind() {
 
     fPts.rewind();
     fVerbs.rewind();
+    fGenerationID++;
     fBoundsIsDirty = true;
 }
 
@@ -212,6 +223,7 @@ void SkPath::setLastPt(SkScalar x, SkScalar y) {
         this->moveTo(x, y);
     } else {
         fPts[count - 1].set(x, y);
+        fGenerationID++;
     }
 }
 
@@ -249,6 +261,7 @@ void SkPath::moveTo(SkScalar x, SkScalar y) {
     }
     pt->set(x, y);
 
+    fGenerationID++;
     fBoundsIsDirty = true;
 }
 
@@ -268,6 +281,7 @@ void SkPath::lineTo(SkScalar x, SkScalar y) {
     fPts.append()->set(x, y);
     *fVerbs.append() = kLine_Verb;
 
+    fGenerationID++;
     fBoundsIsDirty = true;
 }
 
@@ -290,6 +304,7 @@ void SkPath::quadTo(SkScalar x1, SkScalar y1, SkScalar x2, SkScalar y2) {
     pts[1].set(x2, y2);
     *fVerbs.append() = kQuad_Verb;
 
+    fGenerationID++;
     fBoundsIsDirty = true;
 }
 
@@ -313,6 +328,7 @@ void SkPath::cubicTo(SkScalar x1, SkScalar y1, SkScalar x2, SkScalar y2,
     pts[2].set(x3, y3);
     *fVerbs.append() = kCubic_Verb;
 
+    fGenerationID++;
     fBoundsIsDirty = true;
 }
 
@@ -334,6 +350,7 @@ void SkPath::close() {
             case kQuad_Verb:
             case kCubic_Verb:
                 *fVerbs.append() = kClose_Verb;
+                fGenerationID++;
                 break;
             default:
                 // don't add a close if the prev wasn't a primitive
@@ -936,6 +953,7 @@ void SkPath::transform(const SkMatrix& matrix, SkPath* dst) const {
             matrix.mapRect(&dst->fBounds, fBounds);
             dst->fBoundsIsDirty = false;
         } else {
+            dst->fGenerationID++;
             dst->fBoundsIsDirty = true;
         }
 
@@ -1243,6 +1261,7 @@ void SkPath::unflatten(SkFlattenableReadBuffer& buffer) {
     buffer.read(fPts.begin(), sizeof(SkPoint) * fPts.count());
     buffer.read(fVerbs.begin(), fVerbs.count());
     
+    fGenerationID++;
     fBoundsIsDirty = true;
 
     SkDEBUGCODE(this->validate();)

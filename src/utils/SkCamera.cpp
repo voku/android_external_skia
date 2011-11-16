@@ -400,16 +400,6 @@ void Sk3DView::restore()
     fRec = next;
 }
 
-void Sk3DView::setCameraLocation(SkScalar x, SkScalar y, SkScalar z)
-{
-    // the camera location is passed in inches, set in pt
-    SkScalar lz = z * SkFloatToScalar(72.0f);
-    fCamera.fLocation.set(x * SkFloatToScalar(72.0f), y * SkFloatToScalar(72.0f), lz);
-    fCamera.fObserver.set(0, 0, lz);
-    fCamera.update();
-    
-}
-
 void Sk3DView::translate(SkScalar x, SkScalar y, SkScalar z)
 {
     fRec->fMatrix.preTranslate(x, y, z);

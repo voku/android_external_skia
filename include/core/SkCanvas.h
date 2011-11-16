@@ -29,7 +29,6 @@
 
 class SkBounder;
 class SkDevice;
-class SkDeviceFactory;
 class SkDraw;
 class SkDrawFilter;
 class SkPicture;
@@ -52,37 +51,29 @@ class SkShape;
 */
 class SkCanvas : public SkRefCnt {
 public:
-    /** Construct a canvas with the given device factory.
-        @param factory  Specify the factory for generating additional devices.
-                        The factory may be null, in which case
-                        SkRasterDeviceFactory will be used.
-    */
-    explicit SkCanvas(SkDeviceFactory* factory = NULL);
-
-    /** Construct a canvas with the specified device to draw into.  The device
-        factory will be retrieved from the passed device.
-        @param device   Specifies a device for the canvas to draw into.
-    */
-    explicit SkCanvas(SkDevice* device);
-
-    /** Deprecated - Construct a canvas with the specified bitmap to draw into.
+    /** Construct a canvas with the specified bitmap to draw into.
         @param bitmap   Specifies a bitmap for the canvas to draw into. Its
                         structure are copied to the canvas.
     */
     explicit SkCanvas(const SkBitmap& bitmap);
+    /** Construct a canvas with the specified device to draw into.
+        @param device   Specifies a device for the canvas to draw into. The
+                        device may be null.
+    */
+    explicit SkCanvas(SkDevice* device = NULL);
     virtual ~SkCanvas();
 
     ///////////////////////////////////////////////////////////////////////////
 
-    /** If the Device supports GL viewports, return true and set size (if not
-        null) to the size of the viewport. If it is not supported, ignore size
-        and return false.
+    /** If this subclass of SkCanvas supports GL viewports, return true and set
+        size (if not null) to the size of the viewport. If it is not supported,
+        ignore vp and return false.
     */
     virtual bool getViewport(SkIPoint* size) const;
-
-    /** If the Device supports GL viewports, return true and set the viewport
-        to the specified x and y dimensions. If it is not supported, ignore x
-        and y and return false.
+    
+    /** If this subclass of SkCanvas supports GL viewports, return true and set
+        the viewport to the specified x and y dimensions. If it is not
+        supported, ignore x and y and return false.
     */
     virtual bool setViewport(int x, int y);
 
@@ -97,16 +88,15 @@ public:
         device, its reference count is decremented. The new device is returned.
     */
     SkDevice* setDevice(SkDevice* device);
-
-    /** Deprecated - Specify a bitmap for the canvas to draw into. This is a
-        helper method for setDevice(), and it creates a device for the bitmap by
-        calling createDevice(). The structure of the bitmap is copied into the
-        device.
+    
+    /** Specify a bitmap for the canvas to draw into. This is a help method for
+        setDevice(), and it creates a device for the bitmap by calling
+        createDevice(). The structure of the bitmap is copied into the device.
     */
     virtual SkDevice* setBitmapDevice(const SkBitmap& bitmap);
 
     ///////////////////////////////////////////////////////////////////////////
-
+    
     enum SaveFlags {
         /** save the matrix state, restoring it on restore() */
         kMatrix_SaveFlag            = 0x01,
@@ -756,11 +746,6 @@ protected:
     // all of the drawBitmap variants call this guy
     virtual void commonDrawBitmap(const SkBitmap&, const SkMatrix& m,
                                   const SkPaint& paint);
-    virtual void commonDrawBitmap(const SkBitmap& b, const SkIRect*,
-                                  const SkMatrix& m, const SkPaint& paint)
-    {
-        commonDrawBitmap(b, m, paint);
-    }
     
 private:
     class MCRec;
@@ -773,7 +758,6 @@ private:
 
     SkBounder*  fBounder;
     SkDevice*   fLastDeviceToGainFocus;
-    SkDeviceFactory* fDeviceFactory;
 
     void prepareForDeviceDraw(SkDevice*);
     

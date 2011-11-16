@@ -93,10 +93,7 @@ public:
 
     void setHinting(Hinting hintingLevel)
     {
-        if ((unsigned) hintingLevel != fHinting) {
-            fGenerationID++;
-            fHinting = hintingLevel;
-        }
+        fHinting = hintingLevel;
     }
 
     /** Specifies the bit values that are stored in the paint's flags.
@@ -809,11 +806,6 @@ public:
     void getTextPath(const void* text, size_t length, SkScalar x, SkScalar y,
                      SkPath* path) const;
 
-    const SkGlyph& getUnicharMetrics(SkUnichar);
-    const void* findImage(const SkGlyph&);
-
-    uint32_t getGenerationID() const;
-
 private:
     SkTypeface*     fTypeface;
     SkScalar        fTextSize;
@@ -838,7 +830,6 @@ private:
     unsigned        fStyle : 2;
     unsigned        fTextEncoding : 2;  // 3 values
     unsigned        fHinting : 2;
-    uint32_t        fGenerationID;
 
     SkDrawCacheProc    getDrawCacheProc() const;
     SkMeasureCacheProc getMeasureCacheProc(TextBufferDirection dir,
@@ -851,7 +842,7 @@ private:
 
     void descriptorProc(const SkMatrix* deviceMatrix,
                         void (*proc)(const SkDescriptor*, void*),
-                        void* context, bool ignoreGamma = false) const;
+                        void* context) const;
 
     const SkRect& computeStrokeFastBounds(const SkRect& orig,
                                           SkRect* storage) const;

@@ -528,8 +528,6 @@ void SkPicturePlayback::draw(SkCanvas& canvas) {
     SkipClipRec skipRect, skipRegion, skipPath;
 #endif
 
-    SkAutoMutexAcquire autoMutex(fDrawMutex);
-
     TextContainer text;
     fReader.rewind();
 

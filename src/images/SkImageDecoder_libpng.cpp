@@ -845,12 +845,7 @@ bool SkPNGImageEncoder::onEncode(SkWStream* stream, const SkBitmap& bitmap,
 
 #include "SkTRegistry.h"
 
-#ifdef SK_ENABLE_LIBPNG
-    SkImageDecoder* sk_libpng_dfactory(SkStream*);
-    SkImageEncoder* sk_libpng_efactory(SkImageEncoder::Type);
-#endif
-
-SkImageDecoder* sk_libpng_dfactory(SkStream* stream) {
+static SkImageDecoder* DFactory(SkStream* stream) {
     char buf[PNG_BYTES_TO_CHECK];
     if (stream->read(buf, PNG_BYTES_TO_CHECK) == PNG_BYTES_TO_CHECK &&
         !png_sig_cmp((png_bytep) buf, (png_size_t)0, PNG_BYTES_TO_CHECK)) {
@@ -859,9 +854,9 @@ SkImageDecoder* sk_libpng_dfactory(SkStream* stream) {
     return NULL;
 }
 
-SkImageEncoder* sk_libpng_efactory(SkImageEncoder::Type t) {
+static SkImageEncoder* EFactory(SkImageEncoder::Type t) {
     return (SkImageEncoder::kPNG_Type == t) ? SkNEW(SkPNGImageEncoder) : NULL;
 }
 
-static SkTRegistry<SkImageEncoder*, SkImageEncoder::Type> gEReg(sk_libpng_efactory);
-static SkTRegistry<SkImageDecoder*, SkStream*> gDReg(sk_libpng_dfactory);
+static SkTRegistry<SkImageEncoder*, SkImageEncoder::Type> gEReg(EFactory);
+static SkTRegistry<SkImageDecoder*, SkStream*> gDReg(DFactory);

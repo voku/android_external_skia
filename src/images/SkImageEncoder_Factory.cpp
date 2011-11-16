@@ -21,24 +21,15 @@ typedef SkTRegistry<SkImageEncoder*, SkImageEncoder::Type> EncodeReg;
 
 template EncodeReg* EncodeReg::gHead;
 
-#ifdef SK_ENABLE_LIBPNG
-    extern SkImageEncoder* sk_libpng_efactory(SkImageEncoder::Type);
-#endif
-
 SkImageEncoder* SkImageEncoder::Create(Type t) {
-    SkImageEncoder* codec = NULL;
     const EncodeReg* curr = EncodeReg::Head();
     while (curr) {
-        if ((codec = curr->factory()(t)) != NULL) {
+        SkImageEncoder* codec = curr->factory()(t);
+        if (codec) {
             return codec;
         }
         curr = curr->next();
     }
-#ifdef SK_ENABLE_LIBPNG
-    if ((codec = sk_libpng_efactory(t)) != NULL) {
-        return codec;
-    }
-#endif
     return NULL;
 }
 

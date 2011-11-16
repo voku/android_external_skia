@@ -110,11 +110,7 @@ inline SkFixed SkFixedSquare_portable(SkFixed value)
     uint32_t a = SkAbs32(value);
     uint32_t ah = a >> 16;
     uint32_t al = a & 0xFFFF;
-    SkFixed result = ah * a + al * ah + (al * al >> 16);
-    if (result >= 0)
-        return result;
-    else // Overflow.
-        return SK_FixedMax;
+    return ah * a + al * ah + (al * al >> 16);
 }
 
 #define SkFixedDiv(numer, denom)    SkDivBits(numer, denom, 16)

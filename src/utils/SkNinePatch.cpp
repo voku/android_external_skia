@@ -243,7 +243,7 @@ static void drawNineViaRects(SkCanvas* canvas, const SkRect& dst,
         dst.fTop, dst.fTop + SkIntToScalar(margins.fTop),
         dst.fBottom - SkIntToScalar(margins.fBottom), dst.fBottom
     };
-
+    
     SkIRect s;
     SkRect  d;
     for (int y = 0; y < 3; y++) {
@@ -278,7 +278,7 @@ void SkNinePatch::DrawNine(SkCanvas* canvas, const SkRect& bounds,
         xDivs[1] = bitmap.width() - margins.fRight;
         yDivs[0] = margins.fTop;
         yDivs[1] = bitmap.height() - margins.fBottom;
-       
+        
         SkNinePatch::DrawMesh(canvas, bounds, bitmap,
                               xDivs, 2, yDivs, 2, paint);
     } else {

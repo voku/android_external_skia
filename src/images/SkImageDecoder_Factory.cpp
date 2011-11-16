@@ -24,15 +24,10 @@ typedef SkTRegistry<SkImageDecoder*, SkStream*> DecodeReg;
 
 template DecodeReg* DecodeReg::gHead;
 
-#ifdef SK_ENABLE_LIBPNG
-    extern SkImageDecoder* sk_libpng_dfactory(SkStream*);
-#endif
-
 SkImageDecoder* SkImageDecoder::Factory(SkStream* stream) {
-    SkImageDecoder* codec = NULL;
     const DecodeReg* curr = DecodeReg::Head();
     while (curr) {
-        codec = curr->factory()(stream);
+        SkImageDecoder* codec = curr->factory()(stream);
         // we rewind here, because we promise later when we call "decode", that
         // the stream will be at its beginning.
         stream->rewind();
@@ -41,13 +36,6 @@ SkImageDecoder* SkImageDecoder::Factory(SkStream* stream) {
         }
         curr = curr->next();
     }
-#ifdef SK_ENABLE_LIBPNG
-    codec = sk_libpng_dfactory(stream);
-    stream->rewind();
-    if (codec) {
-        return codec;
-    }
-#endif
     return NULL;
 }
 

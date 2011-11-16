@@ -72,10 +72,7 @@ public:
      
         @param ft The new fill type for this path
     */
-    void setFillType(FillType ft) {
-        fFillType = SkToU8(ft);
-        fGenerationID++;
-    }
+    void setFillType(FillType ft) { fFillType = SkToU8(ft); }
 
     /** Returns true if the filltype is one of the Inverse variants */
     bool isInverseFillType() const { return (fFillType & 2) != 0; }
@@ -83,10 +80,7 @@ public:
     /** Toggle between inverse and normal filltypes. This reverse the return
         value of isInverseFillType()
     */
-    void toggleInverseFillType() {
-        fFillType ^= 2;
-        fGenerationID++;
-     }
+    void toggleInverseFillType() { fFillType ^= 2; }
 
     /** Returns true if the path is flagged as being convex. This is not a
         confirmed by any analysis, it is just the value set earlier.
@@ -98,10 +92,7 @@ public:
         not convex can give undefined results when drawn. Paths default to
         isConvex == false
      */
-    void setIsConvex(bool isConvex) {
-        fIsConvex = (isConvex != 0);
-        fGenerationID++;
-    }
+    void setIsConvex(bool isConvex) { fIsConvex = (isConvex != 0); }
 
     /** Clear any lines and curves from the path, making it empty. This frees up
         internal storage associated with those segments.
@@ -580,8 +571,6 @@ public:
     */
     void subdivide(SkScalar dist, bool bendLines, SkPath* dst = NULL) const;
 
-    uint32_t getGenerationID() const;
-
     SkDEBUGCODE(void validate() const;)
 
 private:
@@ -591,7 +580,6 @@ private:
     mutable uint8_t     fBoundsIsDirty;
     uint8_t             fFillType;
     uint8_t             fIsConvex;
-    uint32_t            fGenerationID;
 
     // called, if dirty, by getBounds()
     void computeBounds() const;

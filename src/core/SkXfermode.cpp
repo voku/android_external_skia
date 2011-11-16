@@ -315,12 +315,10 @@ void SkProcXfermode::xferA8(SK_RESTRICT SkAlpha dst[],
 SkProcXfermode::SkProcXfermode(SkFlattenableReadBuffer& buffer)
         : SkXfermode(buffer) {
     fProc = (SkXfermodeProc)buffer.readFunctionPtr();
-    fMode = (Mode) buffer.readInt();
 }
 
 void SkProcXfermode::flatten(SkFlattenableWriteBuffer& buffer) {
     buffer.writeFunctionPtr((void*)fProc);
-    buffer.writeInt(fMode);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -943,36 +941,30 @@ SkXfermode* SkXfermode::Create(Mode mode) {
     SkASSERT(SK_ARRAY_COUNT(gProcCoeffs) == kModeCount);
     SkASSERT((unsigned)mode < kModeCount);
 
-    SkXfermode* xferMode = NULL;
     switch (mode) {
         case kClear_Mode:
-            xferMode = SkNEW(SkClearXfermode);
-            break;
+            return SkNEW(SkClearXfermode);
         case kSrc_Mode:
-            xferMode = SkNEW(SkSrcXfermode);
-            break;
+            return SkNEW(SkSrcXfermode);
         case kSrcOver_Mode:
             return NULL;
         case kDstIn_Mode:
-            xferMode = SkNEW(SkDstInXfermode);
-            break;
+            return SkNEW(SkDstInXfermode);
         case kDstOut_Mode:
-            xferMode = SkNEW(SkDstOutXfermode);
-            break;
+            return SkNEW(SkDstOutXfermode);
         // use the table 
         default: {
             const ProcCoeff& rec = gProcCoeffs[mode];
             if ((unsigned)rec.fSC < SkXfermode::kCoeffCount &&
                     (unsigned)rec.fDC < SkXfermode::kCoeffCount) {
-                xferMode = SkNEW_ARGS(SkProcCoeffXfermode, (rec.fProc, rec.fSC, rec.fDC));
+                return SkNEW_ARGS(SkProcCoeffXfermode, (rec.fProc,
+                                                        rec.fSC,
+                                                        rec.fDC));
             } else {
-                xferMode = SkNEW_ARGS(SkProcXfermode, (rec.fProc));
+                return SkNEW_ARGS(SkProcXfermode, (rec.fProc));
             }
-            break;
         }
     }
-    xferMode->fMode = mode;
-    return xferMode;
 }
 
 bool SkXfermode::IsMode(SkXfermode* xfer, Mode* mode) {

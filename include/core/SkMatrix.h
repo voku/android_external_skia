@@ -401,7 +401,6 @@ public:
     */
     bool fixedStepInX(SkScalar y, SkFixed* stepX, SkFixed* stepY) const;
 
-#ifdef SK_SCALAR_IS_FIXED
     friend bool operator==(const SkMatrix& a, const SkMatrix& b) {
         return memcmp(a.fMat, b.fMat, sizeof(a.fMat)) == 0;
     }
@@ -409,12 +408,6 @@ public:
     friend bool operator!=(const SkMatrix& a, const SkMatrix& b) {
         return memcmp(a.fMat, b.fMat, sizeof(a.fMat)) != 0;
     }
-#else
-    friend bool operator==(const SkMatrix& a, const SkMatrix& b);
-    friend bool operator!=(const SkMatrix& a, const SkMatrix& b) {
-        return !(a == b);
-    }
-#endif
 
     enum {
         // flatten/unflatten will never return a value larger than this
@@ -439,12 +432,7 @@ private:
         kRectStaysRect_Mask = 0x10,
 
         kUnknown_Mask = 0x80,
-
-        kORableMasks =  kTranslate_Mask |
-                        kScale_Mask |
-                        kAffine_Mask |
-                        kPerspective_Mask,
-
+        
         kAllMasks = kTranslate_Mask |
                     kScale_Mask |
                     kAffine_Mask |
@@ -462,12 +450,7 @@ private:
         SkASSERT(kUnknown_Mask == mask || (mask & kAllMasks) == mask);
         fTypeMask = SkToU8(mask);
     }
-
-    void orTypeMask(int mask) {
-        SkASSERT((mask & kORableMasks) == mask);
-        fTypeMask = SkToU8(fTypeMask | mask);
-    }
-
+    
     void clearTypeMask(int mask) {
         // only allow a valid mask
         SkASSERT((mask & kAllMasks) == mask);

@@ -20,44 +20,7 @@
 #include "SkUnitMapper.h"
 #include "SkUtils.h"
 
-#if defined(SK_SCALAR_IS_FLOAT) && !defined(SK_DONT_USE_FLOAT_SQRT)
-    #define SK_USE_FLOAT_SQRT
-#endif
-
-#ifndef SK_DISABLE_DITHER_32BIT_GRADIENT
-    #define USE_DITHER_32BIT_GRADIENT
-#endif
-
-static void sk_memset32_dither(uint32_t dst[], uint32_t v0, uint32_t v1,
-                               int count) {
-    if (count > 0) {
-        if (v0 == v1) {
-            sk_memset32(dst, v0, count);
-        } else {
-            int pairs = count >> 1;
-            for (int i = 0; i < pairs; i++) {
-                *dst++ = v0;
-                *dst++ = v1;
-            }
-            if (count & 1) {
-                *dst = v0;
-            }
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Can't use a two-argument function with side effects like this in a
-// constructor's initializer's argument list because the order of
-// evaluations in that context is undefined (and backwards on linux/gcc).
-static SkPoint unflatten_point(SkReader32& buffer) {
-    SkPoint retval;
-    retval.fX = buffer.readScalar();
-    retval.fY = buffer.readScalar();
-    return retval;
-}
-
-///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 
 typedef SkFixed (*TileProc)(SkFixed);
 
@@ -974,9 +937,6 @@ public:
             dstProc(fDstToIndex, SkIntToScalar(x), SkIntToScalar(y), &srcPt);
             SkFixed dx, fx = SkScalarToFixed(srcPt.fX);
             SkFixed dy, fy = SkScalarToFixed(srcPt.fY);
-#ifdef SK_USE_FLOAT_SQRT
-            float fdx, fdy;
-#endif
 
             if (fDstToIndexClass == kFixedStepInX_MatrixClass)
             {
@@ -984,18 +944,12 @@ public:
                 (void)fDstToIndex.fixedStepInX(SkIntToScalar(y), &storage[0], &storage[1]);
                 dx = storage[0];
                 dy = storage[1];
-#ifdef SK_USE_FLOAT_SQRT
-                fdx = SkFixedToFloat(storage[0]);
-                fdy = SkFixedToFloat(storage[1]);
-#endif
-            } else {
+            }
+            else
+            {
                 SkASSERT(fDstToIndexClass == kLinear_MatrixClass);
                 dx = SkScalarToFixed(fDstToIndex.getScaleX());
                 dy = SkScalarToFixed(fDstToIndex.getSkewY());
-#ifdef SK_USE_FLOAT_SQRT
-                fdx = fDstToIndex.getScaleX();
-                fdy = fDstToIndex.getSkewY();
-#endif
             }
 
             if (proc == clamp_tileproc)
@@ -1014,19 +968,9 @@ public:
                     fx += dx;
                     fy += dy;
                 } while (--count != 0);
-            } else if (proc == mirror_tileproc) {
-#ifdef SK_USE_FLOAT_SQRT
-                float ffx = srcPt.fX;
-                float ffy = srcPt.fY;
-                do {
-                    float fdist = sk_float_sqrt(ffx*ffx + ffy*ffy);
-                    unsigned fi = mirror_tileproc(SkFloatToFixed(fdist));
-                    SkASSERT(fi <= 0xFFFF);
-                    *dstC++ = cache[fi >> (16 - kCache32Bits)];
-                    ffx += fdx;
-                    ffy += fdy;
-                } while (--count != 0);
-#else
+            }
+            else if (proc == mirror_tileproc)
+            {
                 do {
                     SkFixed dist = SkFixedSqrt(SkFixedSquare(fx) + SkFixedSquare(fy));
                     unsigned fi = mirror_tileproc(dist);
@@ -1035,8 +979,9 @@ public:
                     fx += dx;
                     fy += dy;
                 } while (--count != 0);
-#endif
-            } else {
+            }
+            else
+            {
                 SkASSERT(proc == repeat_tileproc);
                 do {
                     SkFixed dist = SkFixedSqrt(SkFixedSquare(fx) + SkFixedSquare(fy));
@@ -1247,22 +1192,18 @@ private:
 
 */
 
-static inline SkFixed two_point_radial(SkScalar b, SkScalar fx, SkScalar fy,
-                                       SkScalar sr2d2, SkScalar foura,
-                                       SkScalar oneOverTwoA, bool posRoot) {
-    SkScalar c = SkScalarSquare(fx) + SkScalarSquare(fy) - sr2d2;
-    SkScalar discrim = SkScalarSquare(b) - SkScalarMul(foura, c);
+static inline SkFixed two_point_radial(SkFixed b, SkFixed fx, SkFixed fy, SkFixed sr2d2, SkFixed foura, SkFixed oneOverTwoA, bool posRoot) {
+    SkFixed c = SkFixedSquare(fx) + SkFixedSquare(fy) - sr2d2;
+    SkFixed discrim = SkFixedSquare(b) - SkFixedMul(foura, c);
     if (discrim < 0) {
         discrim = -discrim;
     }
-    SkScalar rootDiscrim = SkScalarSqrt(discrim);
-    SkScalar result;
+    SkFixed rootDiscrim = SkFixedSqrt(discrim);
     if (posRoot) {
-        result = SkScalarMul(-b + rootDiscrim, oneOverTwoA);
+        return SkFixedMul(-b + rootDiscrim, oneOverTwoA);
     } else {
-        result = SkScalarMul(-b - rootDiscrim, oneOverTwoA);
+        return SkFixedMul(-b - rootDiscrim, oneOverTwoA);
     }
-    return SkScalarToFixed(result);
 }
 
 class Two_Point_Radial_Gradient : public Gradient_Shader {
@@ -1299,38 +1240,38 @@ public:
         SkMatrix::MapXYProc dstProc = fDstToIndexProc;
         TileProc            proc = fTileProc;
         const SkPMColor*    cache = this->getCache32();
-
-        SkScalar foura = fA * 4;
+        SkFixed diffx = SkScalarToFixed(fDiff.fX);
+        SkFixed diffy = SkScalarToFixed(fDiff.fY);
+        SkFixed foura = SkScalarToFixed(SkScalarMul(fA, 4));
+        SkFixed startRadius = SkScalarToFixed(fStartRadius);
+        SkFixed sr2D2 = SkScalarToFixed(fSr2D2);
+        SkFixed oneOverTwoA = SkScalarToFixed(fOneOverTwoA);
         bool posRoot = fDiffRadius < 0;
         if (fDstToIndexClass != kPerspective_MatrixClass)
         {
             SkPoint srcPt;
-            dstProc(fDstToIndex, SkIntToScalar(x) + SK_ScalarHalf,
-                                 SkIntToScalar(y) + SK_ScalarHalf, &srcPt);
-            SkScalar dx, fx = srcPt.fX;
-            SkScalar dy, fy = srcPt.fY;
+            dstProc(fDstToIndex, SkIntToScalar(x), SkIntToScalar(y), &srcPt);
+            SkFixed dx, fx = SkScalarToFixed(srcPt.fX);
+            SkFixed dy, fy = SkScalarToFixed(srcPt.fY);
 
             if (fDstToIndexClass == kFixedStepInX_MatrixClass)
             {
-                SkFixed fixedX, fixedY;
-                (void)fDstToIndex.fixedStepInX(SkIntToScalar(y), &fixedX, &fixedY);
-                dx = SkFixedToScalar(fixedX);
-                dy = SkFixedToScalar(fixedY);
+                (void)fDstToIndex.fixedStepInX(SkIntToScalar(y), &dx, &dy);
             }
             else
             {
                 SkASSERT(fDstToIndexClass == kLinear_MatrixClass);
-                dx = fDstToIndex.getScaleX();
-                dy = fDstToIndex.getSkewY();
+                dx = SkScalarToFixed(fDstToIndex.getScaleX());
+                dy = SkScalarToFixed(fDstToIndex.getSkewY());
             }
-            SkScalar b = (SkScalarMul(fDiff.fX, fx) +
-                         SkScalarMul(fDiff.fY, fy) - fStartRadius) * 2;
-            SkScalar db = (SkScalarMul(fDiff.fX, dx) +
-                          SkScalarMul(fDiff.fY, dy)) * 2;
+            SkFixed b = (SkFixedMul(diffx, fx) +
+                         SkFixedMul(diffy, fy) - startRadius) << 1;
+            SkFixed db = (SkFixedMul(diffx, dx) +
+                          SkFixedMul(diffy, dy)) << 1;
             if (proc == clamp_tileproc)
             {
                 for (; count > 0; --count) {
-                    SkFixed t = two_point_radial(b, fx, fy, fSr2D2, foura, fOneOverTwoA, posRoot);
+                    SkFixed t = two_point_radial(b, fx, fy, sr2D2, foura, oneOverTwoA, posRoot);
                     SkFixed index = SkClampMax(t, 0xFFFF);
                     SkASSERT(index <= 0xFFFF);
                     *dstC++ = cache[index >> (16 - kCache32Bits)];
@@ -1342,7 +1283,7 @@ public:
             else if (proc == mirror_tileproc)
             {
                 for (; count > 0; --count) {
-                    SkFixed t = two_point_radial(b, fx, fy, fSr2D2, foura, fOneOverTwoA, posRoot);
+                    SkFixed t = two_point_radial(b, fx, fy, sr2D2, foura, oneOverTwoA, posRoot);
                     SkFixed index = mirror_tileproc(t);
                     SkASSERT(index <= 0xFFFF);
                     *dstC++ = cache[index >> (16 - kCache32Bits)];
@@ -1355,7 +1296,7 @@ public:
             {
                 SkASSERT(proc == repeat_tileproc);
                 for (; count > 0; --count) {
-                    SkFixed t = two_point_radial(b, fx, fy, fSr2D2, foura, fOneOverTwoA, posRoot);
+                    SkFixed t = two_point_radial(b, fx, fy, sr2D2, foura, oneOverTwoA, posRoot);
                     SkFixed index = repeat_tileproc(t);
                     SkASSERT(index <= 0xFFFF);
                     *dstC++ = cache[index >> (16 - kCache32Bits)];
@@ -1372,11 +1313,11 @@ public:
             for (; count > 0; --count) {
                 SkPoint             srcPt;
                 dstProc(fDstToIndex, dstX, dstY, &srcPt);
-                SkScalar fx = srcPt.fX;
-                SkScalar fy = srcPt.fY;
-                SkScalar b = (SkScalarMul(fDiff.fX, fx) +
-                             SkScalarMul(fDiff.fY, fy) - fStartRadius) * 2;
-                SkFixed t = two_point_radial(b, fx, fy, fSr2D2, foura, fOneOverTwoA, posRoot);
+                SkFixed fx = SkScalarToFixed(srcPt.fX);
+                SkFixed fy = SkScalarToFixed(srcPt.fY);
+                SkFixed b = (SkFixedMul(diffx, fx) +
+                             SkFixedMul(diffy, fy) - startRadius) << 1;
+                SkFixed t = two_point_radial(b, fx, fy, sr2D2, foura, oneOverTwoA, posRoot);
                 SkFixed index = proc(t);
                 SkASSERT(index <= 0xFFFF);
                 *dstC++ = cache[index >> (16 - kCache32Bits)];
@@ -1629,26 +1570,11 @@ static unsigned atan_0_90(SkFixed y, SkFixed x)
 }
 
 //  returns angle in a circle [0..2PI) -> [0..255]
-#ifdef SK_SCALAR_IS_FLOAT
-static unsigned SkATan2_255(float y, float x) {
-    //    static const float g255Over2PI = 255 / (2 * SK_ScalarPI);
-    static const float g255Over2PI = 40.584510488433314f;
-
-    float result = sk_float_atan2(y, x);
-    if (result < 0) {
-        result += 2 * SK_ScalarPI;
-    }
-    SkASSERT(result >= 0);
-    // since our value is always >= 0, we can cast to int, which is faster than
-    // calling floorf()
-    int ir = (int)(result * g255Over2PI);
-    SkASSERT(ir >= 0 && ir <= 255);
-    return ir;
-}
-#else
-static unsigned SkATan2_255(SkFixed y, SkFixed x) {
-    if (x == 0) {
-        if (y == 0) {
+static unsigned SkATan2_255(SkFixed y, SkFixed x)
+{
+    if (x == 0)
+    {
+        if (y == 0)
             return 0;
         return y < 0 ? 192 : 64;
     }
@@ -1697,7 +1623,6 @@ static unsigned SkATan2_255(SkFixed y, SkFixed x) {
     SkASSERT(result < 256);
     return result;
 }
-#endif
 
 void Sweep_Gradient::shadeSpan(int x, int y, SkPMColor dstC[], int count)
 {
@@ -1710,19 +1635,22 @@ void Sweep_Gradient::shadeSpan(int x, int y, SkPMColor dstC[], int count)
     {
         proc(matrix, SkIntToScalar(x) + SK_ScalarHalf,
                      SkIntToScalar(y) + SK_ScalarHalf, &srcPt);
-        SkScalar dx, fx = srcPt.fX;
-        SkScalar dy, fy = srcPt.fY;
-
-        if (fDstToIndexClass == kFixedStepInX_MatrixClass) {
+        SkFixed dx, fx = SkScalarToFixed(srcPt.fX);
+        SkFixed dy, fy = SkScalarToFixed(srcPt.fY);
+        
+        if (fDstToIndexClass == kFixedStepInX_MatrixClass)
+        {
             SkFixed storage[2];
             (void)matrix.fixedStepInX(SkIntToScalar(y) + SK_ScalarHalf,
                                       &storage[0], &storage[1]);
-            dx = SkFixedToScalar(storage[0]);
-            dy = SkFixedToScalar(storage[1]);
-        } else {
+            dx = storage[0];
+            dy = storage[1];
+        }
+        else
+        {
             SkASSERT(fDstToIndexClass == kLinear_MatrixClass);
-            dx = matrix.getScaleX();
-            dy = matrix.getSkewY();
+            dx = SkScalarToFixed(matrix.getScaleX());
+            dy = SkScalarToFixed(matrix.getSkewY());
         }
         
         for (; count > 0; --count)
@@ -1737,8 +1665,11 @@ void Sweep_Gradient::shadeSpan(int x, int y, SkPMColor dstC[], int count)
         for (int stop = x + count; x < stop; x++)
         {
             proc(matrix, SkIntToScalar(x) + SK_ScalarHalf,
-                         SkIntToScalar(y) + SK_ScalarHalf, &srcPt);
-            *dstC++ = cache[SkATan2_255(srcPt.fY, srcPt.fX)];
+                 SkIntToScalar(y) + SK_ScalarHalf, &srcPt);
+            
+            int index = SkATan2_255(SkScalarToFixed(srcPt.fY),
+                                    SkScalarToFixed(srcPt.fX));
+            *dstC++ = cache[index];
         }
     }
 }
@@ -1755,19 +1686,22 @@ void Sweep_Gradient::shadeSpan16(int x, int y, uint16_t dstC[], int count)
     {
         proc(matrix, SkIntToScalar(x) + SK_ScalarHalf,
                      SkIntToScalar(y) + SK_ScalarHalf, &srcPt);
-        SkScalar dx, fx = srcPt.fX;
-        SkScalar dy, fy = srcPt.fY;
-
-        if (fDstToIndexClass == kFixedStepInX_MatrixClass) {
+        SkFixed dx, fx = SkScalarToFixed(srcPt.fX);
+        SkFixed dy, fy = SkScalarToFixed(srcPt.fY);
+        
+        if (fDstToIndexClass == kFixedStepInX_MatrixClass)
+        {
             SkFixed storage[2];
             (void)matrix.fixedStepInX(SkIntToScalar(y) + SK_ScalarHalf,
                                       &storage[0], &storage[1]);
-            dx = SkFixedToScalar(storage[0]);
-            dy = SkFixedToScalar(storage[1]);
-        } else {
+            dx = storage[0];
+            dy = storage[1];
+        }
+        else
+        {
             SkASSERT(fDstToIndexClass == kLinear_MatrixClass);
-            dx = matrix.getScaleX();
-            dy = matrix.getSkewY();
+            dx = SkScalarToFixed(matrix.getScaleX());
+            dy = SkScalarToFixed(matrix.getSkewY());
         }
         
         for (; count > 0; --count)
@@ -1785,8 +1719,9 @@ void Sweep_Gradient::shadeSpan16(int x, int y, uint16_t dstC[], int count)
         {
             proc(matrix, SkIntToScalar(x) + SK_ScalarHalf,
                          SkIntToScalar(y) + SK_ScalarHalf, &srcPt);
-
-            int index = SkATan2_255(srcPt.fY, srcPt.fX);
+            
+            int index = SkATan2_255(SkScalarToFixed(srcPt.fY),
+                                    SkScalarToFixed(srcPt.fX));
             index >>= (8 - kCache16Bits);
             *dstC++ = cache[toggle + index];
             toggle ^= (1 << kCache16Bits);

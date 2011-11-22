@@ -23,8 +23,10 @@ ifneq ($(ARCH_ARM_HAVE_VFP),true)
 endif
 
 ifeq ($(ARCH_ARM_HAVE_NEON),true)
-	LOCAL_CFLAGS += -D__ARM_HAVE_NEON
+	LOCAL_CFLAGS += -D__ARM_HAVE_NEON -ftree-vectorize
 endif
+
+LOCAL_CFLAGS += -O3 -ffast-math -fsingle-precision-constant
 
 LOCAL_SRC_FILES:= \
 	src/core/Sk64.cpp \

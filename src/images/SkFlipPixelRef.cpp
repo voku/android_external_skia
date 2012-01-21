@@ -125,4 +125,3 @@ void SkFlipPixelRef::CopyBitsFromAddr(const SkBitmap& dst, const SkRegion& clip,
         iter.next();
     }
 }
-

@@ -9,15 +9,11 @@ include $(CLEAR_VARS)
 
 LOCAL_ARM_MODE := arm
 
+LOCAL_CFLAGS += -ffast-math -funsafe-loop-optimizations
+
 # need a flag to tell the C side when we're on devices with large memory
 # budgets (i.e. larger than the low-end devices that initially shipped)
-ifeq ($(ARCH_ARM_HAVE_VFP),true)
-    LOCAL_CFLAGS += -DANDROID_LARGE_MEMORY_DEVICE
-endif
-
-ifneq ($(ARCH_ARM_HAVE_VFP),true)
-	LOCAL_CFLAGS += -DSK_SOFTWARE_FLOAT
-endif
+LOCAL_CFLAGS += -DANDROID_LARGE_MEMORY_DEVICE
 
 ifeq ($(ARCH_ARM_HAVE_NEON),true)
 	LOCAL_CFLAGS += -D__ARM_HAVE_NEON -ftree-vectorize
@@ -271,10 +267,6 @@ include $(BUILD_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 
 LOCAL_ARM_MODE := arm
-
-ifneq ($(ARCH_ARM_HAVE_VFP),true)
-	LOCAL_CFLAGS += -DSK_SOFTWARE_FLOAT
-endif
 
 ifeq ($(ARCH_ARM_HAVE_NEON),true)
 	LOCAL_CFLAGS += -D__ARM_HAVE_NEON
